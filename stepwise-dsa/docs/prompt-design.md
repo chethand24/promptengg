@@ -1,0 +1,9 @@
+# Prompt design
+
+Every template in `backend/src/prompts/*.v1.txt` states role, task, learner level, previous context, the strict JSON contract, and common honesty/injection rules. The schema placeholder is filled from the actual shared Zod schema, avoiding drift between written schema and validation. Input and all prior model output are untrusted data; `<` is escaped before insertion so a string cannot close the delimiter. This is defense in depth, not a claim that prompt injection is solved.
+
+The decomposition is generated per question and validated as an ordered DAG. Stage 2 performs one model call per node, progressively accumulating previous answers. Stage 3 receives the complete chain. Live mock calls follow exactly the same orchestration; canned fixtures never answer arbitrary edited submissions. Custom code routes to Claude automatically regardless of the demo toggle; guided sessions retain their original provider.
+
+Evaluation is separate from remediation and hint generation. Evaluation returns a correctness claim, feedback, misconception category, and confidence; below 0.8 is treated conservatively as not established. Guided semantic grading is always labeled unverified. Wrong answers insert a fresh simpler exercise before the original. Hint generation requests a specified level; worked answers use the already validated private reference at level 3. Instruction-based safeguards cannot guarantee a live model never leaks an answer in a hint or feedback.
+
+The pipeline validates parsed JSON before returning anything to the caller. Invalid output triggers complete regeneration twice with the versioned repair template and bounded validation details. Provider transport errors are handled separately by the SDK and centralized API error flow. No tool execution is delegated to Claude.
